@@ -1,6 +1,10 @@
-Project Name: Calculator
+Project Name
+============
+Calculator
 
-Name: Greg Terrono
+Name
+====
+Greg Terrono
 
 Plan
 ====
