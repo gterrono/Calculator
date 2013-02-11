@@ -15,6 +15,8 @@
 - (IBAction)clear:(id)sender;
 - (IBAction)addNumericalValue:(id)sender;
 - (IBAction)addOperator:(id)sender;
+- (IBAction)ePressed:(id)sender;
+- (IBAction)piPressed:(id)sender;
 
 //Helpers
 - (void)disableInvalidButtons;
@@ -37,6 +39,7 @@
 @property (strong, nonatomic) NSMutableArray *repr;
 @property (strong, nonatomic) NSString *displayText;
 @property (nonatomic) BOOL justPressedEquals;
+@property (nonatomic) BOOL divByZero;
 @end
 
 @implementation GRTViewController
@@ -59,9 +62,10 @@
     double result = [self evaluateHelper:1 soFar:[self getDouble:_repr[0]]];
     NSString *text;
     [_repr removeAllObjects];
-    if(result == -HUGE_VAL)
+    if(result == -HUGE_VAL) {
         text = @"Error: Division by 0";
-    else {
+        _divByZero = YES;
+    } else {
         text = [NSString stringWithFormat:@"%g", result];
         [_repr addObject:text];
     }
@@ -114,7 +118,7 @@
 
 //The handler for the backspace button
 - (IBAction)backspace:(id)sender {
-    if(_displayText.length > 1) {
+    if(_displayText.length > 1 && !_divByZero) {
         [self setText:[_displayText substringToIndex:_displayText.length - 1]];
         
         //Determining whether to remove the last digit of a number in repr
@@ -182,11 +186,35 @@
     _justPressedEquals = NO;
 }
 
+- (IBAction)ePressed:(id)sender {
+    [self constantPressed: @"2.71828"];
+}
+
+- (IBAction)piPressed:(id)sender {
+    [self constantPressed: @"3.14159"];
+}
+
+-(void)constantPressed:(NSString*)constant {
+    //If a number is pressed directly after equals, clear the display
+    //and start over
+    if(_repr.count == 0 || _justPressedEquals) {
+        [_repr removeAllObjects];
+        [_repr addObject:constant];
+        [self setText:constant];
+        _justPressedEquals = NO;
+    } else {
+        [_repr addObject:constant];
+        [self setText:[_displayText stringByAppendingString: constant]];
+    }
+    [self disableInvalidButtons];
+}
+
 //Helper that disables the correct buttons depending on the current input
 //so that the user cannot enter invalid input
 - (void)disableInvalidButtons {
     if(_repr.count == 0) {
         [self disableButtons: [NSArray arrayWithObjects: _equals, _plus, _point, _minus, _dividedBy, _times, nil]];
+        [self enableButtons: [NSArray arrayWithObjects: _pi, _euler, nil]];
         return;
     }
     NSString *text = [_repr lastObject];
@@ -208,10 +236,15 @@
         case '*':
         case '/':
             [self disableButtons: [NSArray arrayWithObjects: _equals, _plus, _point, _minus, _dividedBy, _times, nil]];
+            [self enableButtons: [NSArray arrayWithObjects: _pi, _euler, nil]];
             break;
         default:
             [self enableButtons:[NSArray arrayWithObjects:_equals, _minus, _plus, _dividedBy, _times, nil]];
+            [self disableButtons: [NSArray arrayWithObjects: _pi, _euler, nil]];
     }
+    
+    if(_justPressedEquals)
+        [self enableButtons: [NSArray arrayWithObjects: _pi, _euler, nil]];
 }
 
 //Helper to disable an array of buttons
